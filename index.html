@@ -1,0 +1,170 @@
+<html>
+<head></head>
+<body>
+<textarea id="code" style="width:100vw; height: 50vh;"></textarea>
+<p><input type="button" onclick="run();" value="run"></p>
+<div id="register"></div>
+<script>
+
+class Memory{
+	constructor(){
+		this.m = new Array();
+		for(var i = 0; i < 100; i++){
+			this.m.push("0000000000000000");
+		}
+	}
+
+	getMem(p){
+		for(var i = this.m[p]; i < 16; i++){
+			this.m[p] = '0' + this.m[p]; 
+		}
+		return this.m[p];
+	}
+
+	setMem(p, val){
+		this.m[p] = val;
+	}
+}
+
+class Register{
+	constructor(){
+		this.r = "0000000000000000";
+	}
+
+	get reg(){
+		return this.r;
+	}
+	
+	LAD(adr){
+		this.r = dec2bin(adr);
+	}
+	
+	ST(m, adr){
+
+		m.setMem(adr, this.r);
+	}
+
+	LD(val){
+		for(var i = val.length; i < 16; i++){
+			val = '0' + val;
+		}
+		this.r = val;
+	}
+
+	ADD(val){
+		var c = 0;
+		var bin = "";
+		for(var i = this.r.length - 1; i >= 0; i--){
+			c += (this.r[i] == '1' ? 1 : 0) + (val[i] == '1' ? 1 : 0);
+			switch(c){
+			case 1:
+				bin = '1' + bin;
+				c = 0;
+				break;		
+			case 2:
+				bin = '0' + bin;
+				c = 1;
+				break;
+			case 3:
+				bin = '1' + bin;
+				c = 1;
+				break;
+			default:
+				bin = '0' + bin;
+				c = 0;
+				break;
+			}
+		}
+		this.LD(bin);
+	}
+
+	AND(val){
+		var bin = "";
+		for(var i = 0; i < 16; i++){
+			if(this.r[i] == '1' && val[i] == '1'){
+				bin += "1";
+			}else {
+				bin += '0';
+			}
+		}
+		this.LD(bin);
+	}
+
+	OR(val){
+		var bin = "";
+		for(var i = 0; i < 16; i++){
+			if(this.r[i] == '0' && val[i] == '0'){
+				bin += '0';
+			}else {
+				bin += '1';
+			}
+		}
+		this.LD(bin);
+	}
+}
+
+var mem = new Memory();
+var GR = new Array();
+var PC = 0;
+var FR = 0;
+
+for(var i = 0; i < 8; i++){
+	GR.push(new Register());
+}
+
+let showReg = function(){
+	let register = document.getElementById("register");
+	var disp = "";
+	disp = "<table>";
+	for(var i = 0; i < 8; i++){
+		disp += "<tr><td>GR" + i + "</td><td>" + GR[i].reg + "</td></tr>";
+	}
+
+	disp += "<tr><td>PC</td><td>" + PC + "</td></tr>";
+	disp += "<tr><td>FR</td><td>" + FR + "</td></tr>";
+	disp += "</table>";
+	register.innerHTML = disp;
+}
+
+let getCode = function(){
+	return document.getElementById("code").value.replace(/\t/g, " ").replace(/, /g, ",");
+};
+
+let dec2bin = function(dec){
+	var bin = "";
+	var c = 0;
+	while(dec > 0 && c++ < 16){
+		bin = (dec % 2) + bin;
+		dec = dec / 2 | 0;
+	}
+	for(var i = bin.length; i < 16; i++){
+		bin = "0" + bin;
+	}
+	return bin;
+}
+
+let run = function(){
+	var code = getCode();
+	code = code.split('\n');
+	console.log(code);
+	for(var i = 0; i < code.length; i++){
+		let spl = code[i].split(' ');
+		let opcode = spl[0];
+		let gr = parseInt(spl[1].split(',')[0][2]);
+		let adr = parseInt(spl[1].split(',')[1]);
+		switch(opcode){
+		case 'LAD': GR[gr].LAD(adr); break;
+		case 'ST' : GR[gr].ST(mem, adr); break; 
+		case 'LD' : GR[gr].LD(mem.getMem(adr)); break;
+		case 'ADD': GR[gr].ADD(mem.getMem(adr)); break;
+		case 'AND': GR[gr].AND(mem.getMem(adr)); break;
+		case 'OR' : GR[gr].OR(mem.getMem(adr)); break;
+		}
+		showReg();
+	}
+};
+
+showReg();
+</script>
+</body>
+</html>
